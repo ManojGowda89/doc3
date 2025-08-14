@@ -7,7 +7,7 @@ import router from "./src/main.js";
 const { app, PORT } = createApp();
 
 // Enable body parser
-app.use(express.json({ limit: '1024mb' })); // Large limit for base64 uploads
+app.use(express.json({ limit: '250mb' })); // Large limit for base64 uploads
 
 // Static folder setup (Serve uploads folder at /media)
 app.use("/media", express.static(path.join(process.cwd(), "uploads")));
