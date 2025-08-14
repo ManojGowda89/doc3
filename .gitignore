@@ -1,0 +1,59 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+uploads/
+
+# Logs
+logs
+*.log
+*.log.*
+
+# dotenv
+.env
+.env.*.local
+
+# Vite output
+dist/
+public/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Editor folders
+.vscode/
+.idea/
+*.swp
+
+# Optional build cache
+.cache/
+.next/
+out/
+build/
+
+# TypeScript
+*.tsbuildinfo
+
+# Coverage reports
+coverage/
+*.lcov
+
+# Mac system files
+*.DS_Store
+
+# React Native
+.expo/
+
+# Chrome extension specific
+*.pem
+.crx
+
+# Storybook
+.storybook-out/
+storybook-static/
+
+# Local db
+*.sqlite
+*.sqlite3
