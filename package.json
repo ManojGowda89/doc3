@@ -16,6 +16,7 @@
     "@mui/icons-material": "^7.3.1",
     "@mui/material": "^7.3.1",
     "axios": "^1.11.0",
+    "cors": "^2.8.5",
     "express": "^4.21.2",
     "framer-motion": "^12.23.12",
     "morgan": "^1.10.0",
@@ -24,7 +25,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.6.3",
-    "sequelize": "^6.37.7"
+    "sequelize": "^6.37.7",
+    "unmaper": "^1.0.8"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",
