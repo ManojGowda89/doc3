@@ -21,7 +21,9 @@ const allowedOrigins = [
   "https://dmarg.skoegle.com",
   "https://skoegle.com",
   "https://skoegle.in",
-  "https://skoegle.co.in", // not valid by itself but included as per request
+  "https://skocloud-cdn.skoegle.com",
+   "https://www.skocloud-cdn.skoegle.com",
+  "https://skoegle.co.in", 
 ];
 
 // ✅ CORS middleware
