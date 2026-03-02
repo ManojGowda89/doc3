@@ -763,7 +763,7 @@ const FileManager = ({ currentCategory, searchQuery }) => {
                     <CardMedia
                       component="img"
                       height={200}
-                      image={file.url}
+                      image={getCdnUrl(file.url)}
                       alt={file.name}
                       sx={{
                         objectFit: "cover",
