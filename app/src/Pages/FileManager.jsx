@@ -40,7 +40,7 @@ import {
   TableRow,
   Avatar,
   Stack,
-  useMediaQuery
+  useMediaQuery,
 } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
@@ -84,31 +84,39 @@ const acceptTypes = {
 // Animation variants
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: { 
+  visible: {
     opacity: 1,
-    transition: { 
+    transition: {
       when: "beforeChildren",
-      staggerChildren: 0.1
-    }
-  }
+      staggerChildren: 0.1,
+    },
+  },
 };
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
-    transition: { type: "spring", stiffness: 100 }
-  }
+    transition: { type: "spring", stiffness: 100 },
+  },
 };
 
+const getCdnUrl = (url) => {
+  if (!url) return "";
+
+  return url.replace(
+    "https://cdn.skoegle.co.in.s3.ap-south-1.amazonaws.com",
+    "https://cdn.skoegle.co.in",
+  );
+};
 const FileManager = ({ currentCategory, searchQuery }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  
+
   // States for UI
   const [viewMode, setViewMode] = useState("list");
-  
+
   // States for file management
   const [files, setFiles] = useState([]);
   const [filteredFiles, setFilteredFiles] = useState([]);
@@ -116,14 +124,18 @@ const FileManager = ({ currentCategory, searchQuery }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
-  
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
   // States for filtering and sorting
   const [sortAnchorEl, setSortAnchorEl] = useState(null);
   const [filterAnchorEl, setFilterAnchorEl] = useState(null);
   const [sortOrder, setSortOrder] = useState("newest");
   const [filterSize, setFilterSize] = useState("all");
-  
+
   // For duplicate file handling
   const [duplicateDialog, setDuplicateDialog] = useState(false);
   const [currentFile, setCurrentFile] = useState(null);
@@ -134,7 +146,7 @@ const FileManager = ({ currentCategory, searchQuery }) => {
   const [deleteConfirmDialog, setDeleteConfirmDialog] = useState(false);
   const [fileToDelete, setFileToDelete] = useState(null);
   const fileInputRef = useRef(null);
-  
+
   const sortMenuOpen = Boolean(sortAnchorEl);
   const filterMenuOpen = Boolean(filterAnchorEl);
 
@@ -155,108 +167,110 @@ const FileManager = ({ currentCategory, searchQuery }) => {
     setLoading(true);
     try {
       const response = await axios.get(`${API_URL}/all/${currentCategory}`);
-      
+
       // Enhance file objects with additional metadata
-      const enhancedFiles = response.data.map(file => ({
+      const enhancedFiles = response.data.map((file) => ({
         ...file,
         size: file.size || 0,
         mimetype: getMimetypeFromFilename(file.name),
         lastModified: file.lastModified || CURRENT_DATE,
         favorite: false, // We'll manage favorites client-side for this demo
-        uploadedBy: CURRENT_USER
+        uploadedBy: CURRENT_USER,
       }));
-      
+
       setFiles(enhancedFiles);
     } catch (err) {
       console.error("Fetch files error:", err);
       setFiles([]);
-      setSnackbar({ 
-        open: true, 
-        message: err.response?.data?.message || "Failed to load files", 
-        severity: "error" 
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || "Failed to load files",
+        severity: "error",
       });
     } finally {
       setLoading(false);
     }
   }, [currentCategory]);
-  
+
   // Get mimetype from filename extension
   const getMimetypeFromFilename = (filename) => {
-    const ext = filename.split('.').pop().toLowerCase();
+    const ext = filename.split(".").pop().toLowerCase();
     const mimeMap = {
-      jpg: 'image/jpeg',
-      jpeg: 'image/jpeg',
-      png: 'image/png',
-      gif: 'image/gif',
-      svg: 'image/svg+xml',
-      webp: 'image/webp',
-      bmp: 'image/bmp',
-      mp4: 'video/mp4',
-      mpeg: 'video/mpeg',
-      ogg: 'video/ogg',
-      webm: 'video/webm',
-      mov: 'video/quicktime',
-      mp3: 'audio/mpeg',
-      wav: 'audio/wav',
-      aac: 'audio/aac',
-      pdf: 'application/pdf',
-      doc: 'application/msword',
-      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      xls: 'application/vnd.ms-excel',
-      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      txt: 'text/plain',
-      rtf: 'application/rtf'
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      gif: "image/gif",
+      svg: "image/svg+xml",
+      webp: "image/webp",
+      bmp: "image/bmp",
+      mp4: "video/mp4",
+      mpeg: "video/mpeg",
+      ogg: "video/ogg",
+      webm: "video/webm",
+      mov: "video/quicktime",
+      mp3: "audio/mpeg",
+      wav: "audio/wav",
+      aac: "audio/aac",
+      pdf: "application/pdf",
+      doc: "application/msword",
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      xls: "application/vnd.ms-excel",
+      xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      txt: "text/plain",
+      rtf: "application/rtf",
     };
-    
-    return mimeMap[ext] || 'application/octet-stream';
+
+    return mimeMap[ext] || "application/octet-stream";
   };
-  
+
   // Filter and sort files when data changes
   useEffect(() => {
     // Apply search, filter, and sort
     let result = [...files];
-    
+
     // Apply search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(file => 
-        file.name.toLowerCase().includes(query)
-      );
+      result = result.filter((file) => file.name.toLowerCase().includes(query));
     }
-    
+
     // Apply size filter (client-side only since we don't have reliable size info from API)
-    if (filterSize !== 'all' && result.some(file => file.size)) {
-      result = result.filter(file => {
+    if (filterSize !== "all" && result.some((file) => file.size)) {
+      result = result.filter((file) => {
         const size = file.size || 0;
-        switch(filterSize) {
-          case 'small': return size < 1024 * 1024; // < 1MB
-          case 'medium': return size >= 1024 * 1024 && size < 10 * 1024 * 1024; // 1MB - 10MB
-          case 'large': return size >= 10 * 1024 * 1024; // > 10MB
-          default: return true;
+        switch (filterSize) {
+          case "small":
+            return size < 1024 * 1024; // < 1MB
+          case "medium":
+            return size >= 1024 * 1024 && size < 10 * 1024 * 1024; // 1MB - 10MB
+          case "large":
+            return size >= 10 * 1024 * 1024; // > 10MB
+          default:
+            return true;
         }
       });
     }
-    
+
     // Apply sorting
     result.sort((a, b) => {
-      switch(sortOrder) {
-        case 'newest':
+      switch (sortOrder) {
+        case "newest":
           return new Date(b.lastModified || 0) - new Date(a.lastModified || 0);
-        case 'oldest':
+        case "oldest":
           return new Date(a.lastModified || 0) - new Date(b.lastModified || 0);
-        case 'name-asc':
+        case "name-asc":
           return a.name.localeCompare(b.name);
-        case 'name-desc':
+        case "name-desc":
           return b.name.localeCompare(a.name);
-        case 'size-asc':
+        case "size-asc":
           return (a.size || 0) - (b.size || 0);
-        case 'size-desc':
+        case "size-desc":
           return (b.size || 0) - (a.size || 0);
         default:
           return 0;
       }
     });
-    
+
     setFilteredFiles(result);
   }, [files, searchQuery, sortOrder, filterSize]);
 
@@ -268,7 +282,7 @@ const FileManager = ({ currentCategory, searchQuery }) => {
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchFiles();
-    
+
     // Keep refresh animation a minimum time for UX
     setTimeout(() => {
       setRefreshing(false);
@@ -297,24 +311,28 @@ const FileManager = ({ currentCategory, searchQuery }) => {
               setUploadProgress(percent);
             }
           },
-        }
+        },
       );
-      
-      setSnackbar({ open: true, message: "File uploaded successfully", severity: "success" });
+
+      setSnackbar({
+        open: true,
+        message: "File uploaded successfully",
+        severity: "success",
+      });
       await fetchFiles(); // Refresh the file list
       return true;
     } catch (err) {
       console.error("Upload error:", err);
-      
+
       // Check for duplicate file error
       if (err.response?.status === 409) {
         return false; // Indicate duplicate error
       }
-      
-      setSnackbar({ 
-        open: true, 
-        message: err.response?.data?.message || "Upload failed", 
-        severity: "error" 
+
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || "Upload failed",
+        severity: "error",
       });
       return false;
     } finally {
@@ -335,17 +353,18 @@ const FileManager = ({ currentCategory, searchQuery }) => {
 
     try {
       const base64 = await toBase64(file);
-      
+
       // Try uploading the file
       const success = await uploadFile(file.name, base64, file.type);
-      
+
       // If upload failed due to duplicate, show dialog
       if (!success) {
         // Check if the error is due to duplicate file
-        const isDuplicate = files.some(existingFile => 
-          existingFile.name.toLowerCase() === file.name.toLowerCase()
+        const isDuplicate = files.some(
+          (existingFile) =>
+            existingFile.name.toLowerCase() === file.name.toLowerCase(),
         );
-        
+
         if (isDuplicate) {
           // Store current file data for dialog actions
           setCurrentFile(file);
@@ -356,15 +375,19 @@ const FileManager = ({ currentCategory, searchQuery }) => {
       }
     } catch (err) {
       console.error("File processing error:", err);
-      setSnackbar({ open: true, message: "Failed to process file", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: "Failed to process file",
+        severity: "error",
+      });
     }
   };
 
   // Generate a new filename with suffix for duplicates
   const getFileNameWithSuffix = (filename) => {
-    const nameParts = filename.split('.');
+    const nameParts = filename.split(".");
     const extension = nameParts.pop();
-    const baseName = nameParts.join('.');
+    const baseName = nameParts.join(".");
     const timestamp = new Date().getTime().toString().slice(-4);
     return `${baseName}_${timestamp}.${extension}`;
   };
@@ -372,8 +395,12 @@ const FileManager = ({ currentCategory, searchQuery }) => {
   // Handle duplicate file resolution - rename option
   const handleRenameFile = async () => {
     if (!currentFile || !currentBase64 || !newFileName) return;
-    
-    const success = await uploadFile(newFileName, currentBase64, currentFile.type);
+
+    const success = await uploadFile(
+      newFileName,
+      currentBase64,
+      currentFile.type,
+    );
     if (success) {
       setDuplicateDialog(false);
       setCurrentFile(null);
@@ -385,13 +412,17 @@ const FileManager = ({ currentCategory, searchQuery }) => {
   // Handle duplicate file resolution - replace option
   const handleReplaceFile = async () => {
     if (!currentFile || !currentBase64) return;
-    
+
     try {
       // First delete the existing file
       await axios.delete(`${API_URL}/${currentCategory}/${currentFile.name}`);
-      
+
       // Then upload the new one
-      const success = await uploadFile(currentFile.name, currentBase64, currentFile.type);
+      const success = await uploadFile(
+        currentFile.name,
+        currentBase64,
+        currentFile.type,
+      );
       if (success) {
         setDuplicateDialog(false);
         setCurrentFile(null);
@@ -400,7 +431,11 @@ const FileManager = ({ currentCategory, searchQuery }) => {
       }
     } catch (err) {
       console.error("Replace file error:", err);
-      setSnackbar({ open: true, message: "Failed to replace file", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: "Failed to replace file",
+        severity: "error",
+      });
     }
   };
 
@@ -413,8 +448,12 @@ const FileManager = ({ currentCategory, searchQuery }) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
-    setSnackbar({ open: true, message: "File download started", severity: "info" });
+
+    setSnackbar({
+      open: true,
+      message: "File download started",
+      severity: "info",
+    });
   };
 
   // Confirm delete dialog
@@ -426,17 +465,21 @@ const FileManager = ({ currentCategory, searchQuery }) => {
   // Delete single file
   const deleteFile = async () => {
     if (!fileToDelete) return;
-    
+
     try {
       await axios.delete(`${API_URL}/${currentCategory}/${fileToDelete.name}`);
       await fetchFiles(); // Refresh the file list
-      setSnackbar({ open: true, message: "File deleted successfully", severity: "info" });
+      setSnackbar({
+        open: true,
+        message: "File deleted successfully",
+        severity: "info",
+      });
     } catch (err) {
       console.error("Delete file error:", err);
-      setSnackbar({ 
-        open: true, 
-        message: err.response?.data?.message || "Delete failed", 
-        severity: "error" 
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || "Delete failed",
+        severity: "error",
       });
     } finally {
       setDeleteConfirmDialog(false);
@@ -455,10 +498,18 @@ const FileManager = ({ currentCategory, searchQuery }) => {
     console.log("Copying URL to clipboard:", url);
     try {
       await navigator.clipboard.writeText(url);
-      setSnackbar({ open: true, message: "URL copied to clipboard", severity: "success" });
+      setSnackbar({
+        open: true,
+        message: "URL copied to clipboard",
+        severity: "success",
+      });
     } catch (err) {
       console.error("Copy to clipboard failed", err);
-      setSnackbar({ open: true, message: "Failed to copy URL", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: "Failed to copy URL",
+        severity: "error",
+      });
     }
   };
 
@@ -466,7 +517,11 @@ const FileManager = ({ currentCategory, searchQuery }) => {
   const getFileSize = (size) => {
     if (!size) return "Unknown";
     const i = Math.floor(Math.log(size) / Math.log(1024));
-    return (size / Math.pow(1024, i)).toFixed(2) + ' ' + ['B', 'KB', 'MB', 'GB', 'TB'][i];
+    return (
+      (size / Math.pow(1024, i)).toFixed(2) +
+      " " +
+      ["B", "KB", "MB", "GB", "TB"][i]
+    );
   };
 
   // Format date
@@ -481,72 +536,82 @@ const FileManager = ({ currentCategory, searchQuery }) => {
     if (viewMode === "list") {
       return { xs: 12 }; // Full width for list view
     }
-    
-    switch(currentCategory) {
-      case 'images': return { xs: 12, sm: 6, md: 4, lg: 3 };
-      case 'videos': return { xs: 12, sm: 6, md: 4 };
-      case 'audio': return { xs: 12, sm: 6 };
-      case 'documents': return { xs: 12, sm: 6, md: 4 };
-      default: return { xs: 12, sm: 6, md: 4 };
+
+    switch (currentCategory) {
+      case "images":
+        return { xs: 12, sm: 6, md: 4, lg: 3 };
+      case "videos":
+        return { xs: 12, sm: 6, md: 4 };
+      case "audio":
+        return { xs: 12, sm: 6 };
+      case "documents":
+        return { xs: 12, sm: 6, md: 4 };
+      default:
+        return { xs: 12, sm: 6, md: 4 };
     }
   };
 
   // Get appropriate icon for file type
   const getFileIcon = (mimeType) => {
     if (!mimeType) return <DescriptionIcon />;
-    if (mimeType.startsWith('image/')) return <ImageIcon />;
-    if (mimeType.startsWith('video/')) return <VideoLibraryIcon />;
-    if (mimeType.startsWith('audio/')) return <AudiotrackIcon />;
+    if (mimeType.startsWith("image/")) return <ImageIcon />;
+    if (mimeType.startsWith("video/")) return <VideoLibraryIcon />;
+    if (mimeType.startsWith("audio/")) return <AudiotrackIcon />;
     return <DescriptionIcon />;
   };
 
   // Get the appropriate title for the current type
   const getTypeTitle = () => {
-    switch(currentCategory) {
-      case 'images': return 'Image Gallery';
-      case 'videos': return 'Video Collection';
-      case 'audio': return 'Audio Library';
-      case 'documents': return 'Document Repository';
-      default: return 'Media Files';
+    switch (currentCategory) {
+      case "images":
+        return "Image Gallery";
+      case "videos":
+        return "Video Collection";
+      case "audio":
+        return "Audio Library";
+      case "documents":
+        return "Document Repository";
+      default:
+        return "Media Files";
     }
   };
 
   // Toggle star/favorite status for a file (client-side only)
   const toggleFavorite = (file) => {
-    const updatedFiles = files.map(f => {
+    const updatedFiles = files.map((f) => {
       if (f.name === file.name) {
         return { ...f, favorite: !f.favorite };
       }
       return f;
     });
-    
+
     setFiles(updatedFiles);
-    setSnackbar({ 
-      open: true, 
-      message: file.favorite ? "Removed from favorites" : "Added to favorites", 
-      severity: "success" 
+    setSnackbar({
+      open: true,
+      message: file.favorite ? "Removed from favorites" : "Added to favorites",
+      severity: "success",
     });
   };
 
   // Render empty state
   const renderEmptyState = () => (
-    <Box 
+    <Box
       component={motion.div}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
       transition={{ duration: 0.3 }}
-      sx={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center',
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
         my: 8,
         p: 4,
         borderRadius: 2,
         bgcolor: alpha(theme.palette.background.paper, 0.5),
-        backdropFilter: 'blur(10px)',
-        textAlign: 'center'
+        backdropFilter: "blur(10px)",
+        textAlign: "center",
       }}
     >
       <motion.div
@@ -554,14 +619,14 @@ const FileManager = ({ currentCategory, searchQuery }) => {
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
       >
-        <Box 
-          component="img" 
-          src={`/illustrations/empty-${currentCategory}.svg`} 
-          alt="No files" 
-          sx={{ width: '100%', maxWidth: 200, mb: 3, opacity: 0.7 }}
+        <Box
+          component="img"
+          src={`/illustrations/empty-${currentCategory}.svg`}
+          alt="No files"
+          sx={{ width: "100%", maxWidth: 200, mb: 3, opacity: 0.7 }}
         />
       </motion.div>
-      
+
       <motion.div
         initial={{ y: 10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -571,7 +636,7 @@ const FileManager = ({ currentCategory, searchQuery }) => {
           No {currentCategory} found
         </Typography>
       </motion.div>
-      
+
       <motion.div
         initial={{ y: 10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -581,7 +646,7 @@ const FileManager = ({ currentCategory, searchQuery }) => {
           Upload your first file to get started
         </Typography>
       </motion.div>
-      
+
       <motion.div
         initial={{ y: 10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -589,9 +654,9 @@ const FileManager = ({ currentCategory, searchQuery }) => {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        <Button 
-          variant="contained" 
-          component="label" 
+        <Button
+          variant="contained"
+          component="label"
           startIcon={<CloudUploadIcon />}
           disabled={uploading}
           sx={{
@@ -602,12 +667,12 @@ const FileManager = ({ currentCategory, searchQuery }) => {
           }}
         >
           Upload {currentCategory.slice(0, -1)}
-          <input 
-            type="file" 
-            hidden 
+          <input
+            type="file"
+            hidden
             ref={fileInputRef}
-            accept={acceptTypes[currentCategory]} 
-            onChange={handleFileChange} 
+            accept={acceptTypes[currentCategory]}
+            onChange={handleFileChange}
           />
         </Button>
       </motion.div>
@@ -619,15 +684,28 @@ const FileManager = ({ currentCategory, searchQuery }) => {
     <Grid container spacing={3}>
       {[...Array(8)].map((_, index) => (
         <Grid item key={index} {...getGridSize()}>
-          <Card sx={{ height: '100%' }}>
-            <Skeleton variant="rectangular" height={viewMode === "list" ? 100 : 200} />
+          <Card sx={{ height: "100%" }}>
+            <Skeleton
+              variant="rectangular"
+              height={viewMode === "list" ? 100 : 200}
+            />
             <CardContent>
               <Skeleton variant="text" width="70%" height={30} />
               <Skeleton variant="text" width="40%" height={20} />
             </CardContent>
             <CardActions>
-              <Skeleton variant="circular" width={36} height={36} sx={{ mr: 1 }} />
-              <Skeleton variant="circular" width={36} height={36} sx={{ mr: 1 }} />
+              <Skeleton
+                variant="circular"
+                width={36}
+                height={36}
+                sx={{ mr: 1 }}
+              />
+              <Skeleton
+                variant="circular"
+                width={36}
+                height={36}
+                sx={{ mr: 1 }}
+              />
               <Skeleton variant="circular" width={36} height={36} />
             </CardActions>
           </Card>
@@ -638,25 +716,21 @@ const FileManager = ({ currentCategory, searchQuery }) => {
 
   // Render grid view
   const renderGridView = () => (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
+    <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <Grid container spacing={3}>
         <AnimatePresence>
           {filteredFiles.map((file) => (
             <Grid item key={file.name} {...getGridSize()}>
               <motion.div variants={itemVariants}>
-                <Card 
-                  sx={{ 
-                    height: '100%', 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    position: 'relative',
-                    overflow: 'hidden',
+                <Card
+                  sx={{
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    position: "relative",
+                    overflow: "hidden",
                     background: alpha(theme.palette.background.paper, 0.8),
-                    backdropFilter: 'blur(10px)',
+                    backdropFilter: "blur(10px)",
                     borderTop: `1px solid ${alpha(theme.palette.common.white, 0.1)}`,
                     borderLeft: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
                   }}
@@ -665,15 +739,15 @@ const FileManager = ({ currentCategory, searchQuery }) => {
                   <IconButton
                     onClick={() => toggleFavorite(file)}
                     sx={{
-                      position: 'absolute',
+                      position: "absolute",
                       top: 8,
                       right: 8,
                       zIndex: 1,
                       bgcolor: alpha(theme.palette.background.paper, 0.7),
-                      backdropFilter: 'blur(4px)',
-                      '&:hover': {
+                      backdropFilter: "blur(4px)",
+                      "&:hover": {
                         bgcolor: alpha(theme.palette.background.paper, 0.9),
-                      }
+                      },
                     }}
                     size="small"
                   >
@@ -686,33 +760,38 @@ const FileManager = ({ currentCategory, searchQuery }) => {
 
                   {/* Media content */}
                   {file.mimetype?.startsWith("image/") && (
-                    <CardMedia 
-                      component="img" 
-                      height={200} 
-                      image={file.url} 
+                    <CardMedia
+                      component="img"
+                      height={200}
+                      image={file.url}
                       alt={file.name}
-                      sx={{ 
-                        objectFit: 'cover',
-                        transition: 'transform 0.3s ease-in-out',
-                        '&:hover': {
-                          transform: 'scale(1.05)',
+                      sx={{
+                        objectFit: "cover",
+                        transition: "transform 0.3s ease-in-out",
+                        "&:hover": {
+                          transform: "scale(1.05)",
                         },
                       }}
                     />
                   )}
 
                   {file.mimetype?.startsWith("video/") && (
-                    <Box sx={{ position: 'relative', pt: '56.25%' /* 16:9 aspect ratio */ }}>
+                    <Box
+                      sx={{
+                        position: "relative",
+                        pt: "56.25%" /* 16:9 aspect ratio */,
+                      }}
+                    >
                       <Box
                         component="video"
-                        sx={{ 
-                          position: 'absolute', 
-                          top: 0, 
-                          left: 0, 
-                          width: '100%', 
-                          height: '100%',
-                          objectFit: 'cover',
-                          backgroundColor: '#000'
+                        sx={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          backgroundColor: "#000",
                         }}
                         controls
                       >
@@ -723,32 +802,31 @@ const FileManager = ({ currentCategory, searchQuery }) => {
                   )}
 
                   {file.mimetype?.startsWith("audio/") && (
-                    <Box 
-                      sx={{ 
-                        p: 3, 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        alignItems: 'center',
-                        backgroundColor: alpha(theme.palette.primary.dark, 0.05),
+                    <Box
+                      sx={{
+                        p: 3,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        backgroundColor: alpha(
+                          theme.palette.primary.dark,
+                          0.05,
+                        ),
                       }}
                     >
-                      <Box 
-                        component="img" 
-                        src="/icons/audio-wave.svg" 
-                        alt="Audio" 
-                        sx={{ 
-                          width: '100%', 
-                          height: 80, 
-                          objectFit: 'contain',
+                      <Box
+                        component="img"
+                        src="/icons/audio-wave.svg"
+                        alt="Audio"
+                        sx={{
+                          width: "100%",
+                          height: 80,
+                          objectFit: "contain",
                           opacity: 0.7,
-                          mb: 2
+                          mb: 2,
                         }}
                       />
-                      <Box
-                        component="audio"
-                        sx={{ width: '100%' }}
-                        controls
-                      >
+                      <Box component="audio" sx={{ width: "100%" }} controls>
                         <source src={file.url} type={file.mimetype} />
                         Your browser does not support the audio tag.
                       </Box>
@@ -756,110 +834,136 @@ const FileManager = ({ currentCategory, searchQuery }) => {
                   )}
 
                   {!file.mimetype?.startsWith("image/") &&
-                   !file.mimetype?.startsWith("video/") &&
-                   !file.mimetype?.startsWith("audio/") && (
-                    <Box 
-                      sx={{ 
-                        p: 4, 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minHeight: 150,
-                        backgroundColor: alpha(theme.palette.primary.dark, 0.05),
-                      }}
-                    >
-                      <FolderIcon 
-                        sx={{ 
-                          fontSize: 60, 
-                          color: alpha(theme.palette.primary.main, 0.8), 
-                          mb: 2,
-                          filter: `drop-shadow(0 2px 5px ${alpha(theme.palette.primary.main, 0.5)})`,
-                        }} 
-                      />
-                    </Box>
-                  )}
+                    !file.mimetype?.startsWith("video/") &&
+                    !file.mimetype?.startsWith("audio/") && (
+                      <Box
+                        sx={{
+                          p: 4,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          minHeight: 150,
+                          backgroundColor: alpha(
+                            theme.palette.primary.dark,
+                            0.05,
+                          ),
+                        }}
+                      >
+                        <FolderIcon
+                          sx={{
+                            fontSize: 60,
+                            color: alpha(theme.palette.primary.main, 0.8),
+                            mb: 2,
+                            filter: `drop-shadow(0 2px 5px ${alpha(theme.palette.primary.main, 0.5)})`,
+                          }}
+                        />
+                      </Box>
+                    )}
 
                   <CardContent sx={{ flexGrow: 1 }}>
-                    <Typography 
-                      variant="subtitle1" 
-                      component="div" 
+                    <Typography
+                      variant="subtitle1"
+                      component="div"
                       noWrap
-                      sx={{ 
+                      sx={{
                         fontWeight: 500,
-                        overflow: 'hidden', 
-                        textOverflow: 'ellipsis'
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
                       }}
                     >
                       {file.name}
                     </Typography>
-                    
-                    <Stack 
-                      direction="row" 
-                      spacing={1} 
-                      alignItems="center" 
-                      sx={{ mt: 1, color: 'text.secondary', fontSize: '0.75rem' }}
+
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      alignItems="center"
+                      sx={{
+                        mt: 1,
+                        color: "text.secondary",
+                        fontSize: "0.75rem",
+                      }}
                     >
-                      <StorageIcon sx={{ fontSize: '0.875rem' }} />
-                      <Typography variant="body2">{getFileSize(file.size)}</Typography>
-                      
-                      <AccessTimeIcon sx={{ fontSize: '0.875rem', ml: 1 }} />
-                      <Typography variant="body2">{formatDate(file.lastModified)}</Typography>
+                      <StorageIcon sx={{ fontSize: "0.875rem" }} />
+                      <Typography variant="body2">
+                        {getFileSize(file.size)}
+                      </Typography>
+
+                      <AccessTimeIcon sx={{ fontSize: "0.875rem", ml: 1 }} />
+                      <Typography variant="body2">
+                        {formatDate(file.lastModified)}
+                      </Typography>
                     </Stack>
-                    
+
                     <Divider sx={{ my: 1 }} />
-                    
+
                     {file.uploadedBy && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                        <PersonIcon sx={{ fontSize: '0.875rem', color: 'text.secondary', mr: 0.5 }} />
-                        <Typography 
-                          variant="caption" 
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", mt: 1 }}
+                      >
+                        <PersonIcon
+                          sx={{
+                            fontSize: "0.875rem",
+                            color: "text.secondary",
+                            mr: 0.5,
+                          }}
+                        />
+                        <Typography
+                          variant="caption"
                           color="text.secondary"
-                          sx={{ 
-                            fontStyle: 'italic',
-                            color: file.uploadedBy === CURRENT_USER ? theme.palette.info.main : 'text.secondary'
+                          sx={{
+                            fontStyle: "italic",
+                            color:
+                              file.uploadedBy === CURRENT_USER
+                                ? theme.palette.info.main
+                                : "text.secondary",
                           }}
                         >
-                          {file.uploadedBy === CURRENT_USER ? 'You' : file.uploadedBy}
+                          {file.uploadedBy === CURRENT_USER
+                            ? "You"
+                            : file.uploadedBy}
                         </Typography>
                       </Box>
                     )}
                   </CardContent>
 
-                  <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
+                  <CardActions
+                    sx={{ justifyContent: "space-between", px: 2, pb: 2 }}
+                  >
                     <Tooltip title="View Details">
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         onClick={() => showFileDetails(file)}
                         color="info"
                       >
                         <VisibilityIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    
+
                     <Tooltip title="Download">
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         onClick={() => downloadFile(file)}
                         color="primary"
                       >
                         <DownloadIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    
+
                     <Tooltip title="Copy URL">
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         onClick={() => copyUrlToClipboard(file.url)}
                         color="secondary"
                       >
                         <LinkIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    
+
                     <Tooltip title="Delete">
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         onClick={() => confirmDelete(file)}
                         color="error"
                       >
@@ -878,7 +982,10 @@ const FileManager = ({ currentCategory, searchQuery }) => {
 
   // Render list view
   const renderListView = () => (
-    <TableContainer component={Paper} sx={{ backgroundColor: alpha(theme.palette.background.paper, 0.6) }}>
+    <TableContainer
+      component={Paper}
+      sx={{ backgroundColor: alpha(theme.palette.background.paper, 0.6) }}
+    >
       <Table>
         <TableHead>
           <TableRow>
@@ -899,42 +1006,42 @@ const FileManager = ({ currentCategory, searchQuery }) => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                sx={{ 
-                  '&:hover': { 
-                    bgcolor: alpha(theme.palette.primary.main, 0.05)
-                  }
+                sx={{
+                  "&:hover": {
+                    bgcolor: alpha(theme.palette.primary.main, 0.05),
+                  },
                 }}
               >
                 <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
                     {file.favorite && (
-                      <StarIcon 
-                        fontSize="small" 
-                        sx={{ 
-                          mr: 1, 
+                      <StarIcon
+                        fontSize="small"
+                        sx={{
+                          mr: 1,
                           color: theme.palette.warning.main,
-                          animation: 'pulse 2s infinite',
-                          '@keyframes pulse': {
-                            '0%': { opacity: 0.6 },
-                            '50%': { opacity: 1 },
-                            '100%': { opacity: 0.6 },
-                          }
-                        }} 
+                          animation: "pulse 2s infinite",
+                          "@keyframes pulse": {
+                            "0%": { opacity: 0.6 },
+                            "50%": { opacity: 1 },
+                            "100%": { opacity: 0.6 },
+                          },
+                        }}
                       />
                     )}
                     <Avatar
                       variant="rounded"
-                      sx={{ 
-                        width: 32, 
-                        height: 32, 
+                      sx={{
+                        width: 32,
+                        height: 32,
                         mr: 2,
                         bgcolor: file.mimetype?.startsWith("image/")
                           ? theme.palette.primary.dark
                           : file.mimetype?.startsWith("video/")
-                          ? theme.palette.error.dark
-                          : file.mimetype?.startsWith("audio/")
-                          ? theme.palette.success.dark
-                          : theme.palette.warning.dark
+                            ? theme.palette.error.dark
+                            : file.mimetype?.startsWith("audio/")
+                              ? theme.palette.success.dark
+                              : theme.palette.warning.dark,
                       }}
                     >
                       {getFileIcon(file.mimetype)}
@@ -945,22 +1052,28 @@ const FileManager = ({ currentCategory, searchQuery }) => {
                   </Box>
                 </TableCell>
                 <TableCell>
-                  {file.mimetype?.split('/')[1]?.toUpperCase() || "Unknown"}
+                  {file.mimetype?.split("/")[1]?.toUpperCase() || "Unknown"}
                 </TableCell>
                 <TableCell>{getFileSize(file.size)}</TableCell>
                 <TableCell>{formatDate(file.lastModified)}</TableCell>
                 <TableCell>
-                  <Chip 
-                    label={file.uploadedBy === CURRENT_USER ? 'You' : file.uploadedBy}
+                  <Chip
+                    label={
+                      file.uploadedBy === CURRENT_USER ? "You" : file.uploadedBy
+                    }
                     size="small"
-                    color={file.uploadedBy === CURRENT_USER ? "primary" : "default"}
-                    variant={file.uploadedBy === CURRENT_USER ? "filled" : "outlined"}
+                    color={
+                      file.uploadedBy === CURRENT_USER ? "primary" : "default"
+                    }
+                    variant={
+                      file.uploadedBy === CURRENT_USER ? "filled" : "outlined"
+                    }
                   />
                 </TableCell>
                 <TableCell align="right">
                   <Tooltip title="View Details">
-                    <IconButton 
-                      size="small" 
+                    <IconButton
+                      size="small"
                       onClick={() => showFileDetails(file)}
                       sx={{ mr: 1 }}
                       color="info"
@@ -968,10 +1081,10 @@ const FileManager = ({ currentCategory, searchQuery }) => {
                       <VisibilityIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                  
+
                   <Tooltip title="Download">
-                    <IconButton 
-                      size="small" 
+                    <IconButton
+                      size="small"
                       onClick={() => downloadFile(file)}
                       sx={{ mr: 1 }}
                       color="primary"
@@ -979,21 +1092,27 @@ const FileManager = ({ currentCategory, searchQuery }) => {
                       <DownloadIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                  
-                  <Tooltip title={file.favorite ? "Remove Favorite" : "Add Favorite"}>
-                    <IconButton 
-                      size="small" 
+
+                  <Tooltip
+                    title={file.favorite ? "Remove Favorite" : "Add Favorite"}
+                  >
+                    <IconButton
+                      size="small"
                       onClick={() => toggleFavorite(file)}
                       sx={{ mr: 1 }}
                       color={file.favorite ? "warning" : "default"}
                     >
-                      {file.favorite ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
+                      {file.favorite ? (
+                        <StarIcon fontSize="small" />
+                      ) : (
+                        <StarBorderIcon fontSize="small" />
+                      )}
                     </IconButton>
                   </Tooltip>
-                  
+
                   <Tooltip title="Delete">
-                    <IconButton 
-                      size="small" 
+                    <IconButton
+                      size="small"
                       onClick={() => confirmDelete(file)}
                       color="error"
                     >
@@ -1004,7 +1123,7 @@ const FileManager = ({ currentCategory, searchQuery }) => {
               </TableRow>
             ))}
           </AnimatePresence>
-          
+
           {filteredFiles.length === 0 && !loading && (
             <TableRow>
               <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
@@ -1022,50 +1141,58 @@ const FileManager = ({ currentCategory, searchQuery }) => {
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 8 }}>
       {/* Header Section */}
-      <Paper 
-        elevation={0} 
-        sx={{ 
-          p: 3, 
-          mb: 4, 
+      <Paper
+        elevation={0}
+        sx={{
+          p: 3,
+          mb: 4,
           bgcolor: alpha(theme.palette.background.paper, 0.5),
-          backdropFilter: 'blur(10px)',
+          backdropFilter: "blur(10px)",
           borderRadius: 2,
-          position: 'relative',
-          overflow: 'hidden',
+          position: "relative",
+          overflow: "hidden",
           borderTop: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-          boxShadow: `0 10px 30px -10px ${alpha('#000', 0.2)}`,
+          boxShadow: `0 10px 30px -10px ${alpha("#000", 0.2)}`,
         }}
       >
-        <Box sx={{ position: 'absolute', top: 0, right: 0, width: '30%', height: '100%', 
-          opacity: 0.03, 
-          backgroundImage: `url(/patterns/${currentCategory}-pattern.svg)`,
-          backgroundSize: 'cover',
-          zIndex: 0
-        }} />
-        
-        <Box sx={{ position: 'relative', zIndex: 1 }}>
-          <Typography 
-            variant="h4" 
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            width: "30%",
+            height: "100%",
+            opacity: 0.03,
+            backgroundImage: `url(/patterns/${currentCategory}-pattern.svg)`,
+            backgroundSize: "cover",
+            zIndex: 0,
+          }}
+        />
+
+        <Box sx={{ position: "relative", zIndex: 1 }}>
+          <Typography
+            variant="h4"
             gutterBottom
-            sx={{ 
+            sx={{
               fontWeight: 600,
-              background: 'linear-gradient(45deg, #2196f3, #1e88e5)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              background: "linear-gradient(45deg, #2196f3, #1e88e5)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
             }}
           >
             {getTypeTitle()}
           </Typography>
-          
+
           <Typography variant="body2" color="text.secondary" paragraph>
-            Manage your {currentCategory} files with ease. Upload, download, and organize your media collection.
+            Manage your {currentCategory} files with ease. Upload, download, and
+            organize your media collection.
           </Typography>
-          
+
           <Grid container spacing={2} alignItems="center">
             <Grid item>
-              <Button 
-                variant="contained" 
-                component="label" 
+              <Button
+                variant="contained"
+                component="label"
                 startIcon={<CloudUploadIcon />}
                 disabled={uploading}
                 sx={{
@@ -1076,33 +1203,36 @@ const FileManager = ({ currentCategory, searchQuery }) => {
                 }}
               >
                 Upload {currentCategory.slice(0, -1)}
-                <input 
-                  type="file" 
-                  hidden 
+                <input
+                  type="file"
+                  hidden
                   ref={fileInputRef}
-                  accept={acceptTypes[currentCategory]} 
-                  onChange={handleFileChange} 
+                  accept={acceptTypes[currentCategory]}
+                  onChange={handleFileChange}
                 />
               </Button>
             </Grid>
-            
+
             <Grid item>
               <Tooltip title="Filter">
-                <IconButton 
+                <IconButton
                   onClick={(e) => setFilterAnchorEl(e.currentTarget)}
-                  color={filterSize !== 'all' ? 'primary' : 'default'}
-                  sx={{ 
-                    bgcolor: filterSize !== 'all' ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                  color={filterSize !== "all" ? "primary" : "default"}
+                  sx={{
+                    bgcolor:
+                      filterSize !== "all"
+                        ? alpha(theme.palette.primary.main, 0.1)
+                        : "transparent",
                   }}
                 >
                   <FilterListIcon />
                 </IconButton>
               </Tooltip>
             </Grid>
-            
+
             <Grid item>
               <Tooltip title="Sort">
-                <IconButton 
+                <IconButton
                   onClick={(e) => setSortAnchorEl(e.currentTarget)}
                   color="default"
                 >
@@ -1110,49 +1240,55 @@ const FileManager = ({ currentCategory, searchQuery }) => {
                 </IconButton>
               </Tooltip>
             </Grid>
-            
+
             <Grid item>
-              <ButtonGroup 
-                variant="outlined" 
-                size="small" 
-                sx={{ 
+              <ButtonGroup
+                variant="outlined"
+                size="small"
+                sx={{
                   ml: 1,
-                  '& .MuiButtonGroup-grouped': {
-                    borderColor: 'rgba(255, 255, 255, 0.12)',
+                  "& .MuiButtonGroup-grouped": {
+                    borderColor: "rgba(255, 255, 255, 0.12)",
                   },
                 }}
               >
-                <Button 
-                  color={viewMode === 'grid' ? 'primary' : 'inherit'}
-                  onClick={() => setViewMode('grid')}
-                  sx={{ 
-                    bgcolor: viewMode === 'grid' ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                <Button
+                  color={viewMode === "grid" ? "primary" : "inherit"}
+                  onClick={() => setViewMode("grid")}
+                  sx={{
+                    bgcolor:
+                      viewMode === "grid"
+                        ? alpha(theme.palette.primary.main, 0.1)
+                        : "transparent",
                   }}
                 >
                   <GridViewIcon fontSize="small" />
                 </Button>
-                <Button 
-                  color={viewMode === 'list' ? 'primary' : 'inherit'}
-                  onClick={() => setViewMode('list')}
-                  sx={{ 
-                    bgcolor: viewMode === 'list' ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                <Button
+                  color={viewMode === "list" ? "primary" : "inherit"}
+                  onClick={() => setViewMode("list")}
+                  sx={{
+                    bgcolor:
+                      viewMode === "list"
+                        ? alpha(theme.palette.primary.main, 0.1)
+                        : "transparent",
                   }}
                 >
                   <ViewListIcon fontSize="small" />
                 </Button>
               </ButtonGroup>
             </Grid>
-            
+
             <Grid item>
               <Tooltip title="Refresh">
-                <IconButton 
+                <IconButton
                   onClick={handleRefresh}
                   disabled={refreshing}
-                  sx={{ 
-                    animation: refreshing ? 'spin 1s linear infinite' : 'none',
-                    '@keyframes spin': {
-                      '0%': { transform: 'rotate(0deg)' },
-                      '100%': { transform: 'rotate(360deg)' },
+                  sx={{
+                    animation: refreshing ? "spin 1s linear infinite" : "none",
+                    "@keyframes spin": {
+                      "0%": { transform: "rotate(0deg)" },
+                      "100%": { transform: "rotate(360deg)" },
                     },
                   }}
                 >
@@ -1160,14 +1296,14 @@ const FileManager = ({ currentCategory, searchQuery }) => {
                 </IconButton>
               </Tooltip>
             </Grid>
-            
+
             <Grid item xs>
               {filteredFiles.length > 0 && (
-                <Chip 
-                  label={`${filteredFiles.length} ${filteredFiles.length === 1 ? 'file' : 'files'}`} 
-                  size="small" 
-                  sx={{ 
-                    ml: { xs: 0, sm: 'auto' }, 
+                <Chip
+                  label={`${filteredFiles.length} ${filteredFiles.length === 1 ? "file" : "files"}`}
+                  size="small"
+                  sx={{
+                    ml: { xs: 0, sm: "auto" },
                     mr: { xs: 0, sm: 2 },
                     bgcolor: alpha(theme.palette.primary.main, 0.1),
                     color: theme.palette.primary.main,
@@ -1183,24 +1319,24 @@ const FileManager = ({ currentCategory, searchQuery }) => {
       {/* Upload Progress */}
       {uploading && (
         <Fade in={uploading} timeout={500}>
-          <Paper 
-            sx={{ 
-              p: 2, 
-              mb: 3, 
+          <Paper
+            sx={{
+              p: 2,
+              mb: 3,
               bgcolor: alpha(theme.palette.background.paper, 0.8),
-              backdropFilter: 'blur(5px)',
+              backdropFilter: "blur(5px)",
             }}
             elevation={2}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
               <CircularProgress size={20} thickness={5} sx={{ mr: 2 }} />
               <Typography variant="body2">
                 Uploading {currentFile?.name || "file"}... {uploadProgress}%
               </Typography>
             </Box>
-            <LinearProgress 
-              variant="determinate" 
-              value={uploadProgress} 
+            <LinearProgress
+              variant="determinate"
+              value={uploadProgress}
               sx={{ height: 6, borderRadius: 3 }}
             />
           </Paper>
@@ -1216,7 +1352,7 @@ const FileManager = ({ currentCategory, searchQuery }) => {
       {/* Files Grid/List */}
       {!loading && filteredFiles.length > 0 && (
         <Box sx={{ mb: 4 }}>
-          {viewMode === 'grid' ? renderGridView() : renderListView()}
+          {viewMode === "grid" ? renderGridView() : renderListView()}
         </Box>
       )}
 
@@ -1225,21 +1361,21 @@ const FileManager = ({ currentCategory, searchQuery }) => {
         anchorEl={sortAnchorEl}
         open={sortMenuOpen}
         onClose={() => setSortAnchorEl(null)}
-        sx={{ '& .MuiPaper-root': { borderRadius: 2, minWidth: 180 } }}
+        sx={{ "& .MuiPaper-root": { borderRadius: 2, minWidth: 180 } }}
       >
         <Typography variant="subtitle2" sx={{ px: 2, py: 1 }}>
           Sort By
         </Typography>
         <Divider />
         {[
-          { value: 'newest', label: 'Newest First' },
-          { value: 'oldest', label: 'Oldest First' },
-          { value: 'name-asc', label: 'Name (A-Z)' },
-          { value: 'name-desc', label: 'Name (Z-A)' },
-          { value: 'size-asc', label: 'Size (Small to Large)' },
-          { value: 'size-desc', label: 'Size (Large to Small)' },
+          { value: "newest", label: "Newest First" },
+          { value: "oldest", label: "Oldest First" },
+          { value: "name-asc", label: "Name (A-Z)" },
+          { value: "name-desc", label: "Name (Z-A)" },
+          { value: "size-asc", label: "Size (Small to Large)" },
+          { value: "size-desc", label: "Size (Large to Small)" },
         ].map((option) => (
-          <MenuItem 
+          <MenuItem
             key={option.value}
             selected={sortOrder === option.value}
             onClick={() => {
@@ -1249,30 +1385,32 @@ const FileManager = ({ currentCategory, searchQuery }) => {
           >
             {option.label}
             {sortOrder === option.value && (
-              <Box sx={{ ml: 'auto', color: theme.palette.primary.main }}>✓</Box>
+              <Box sx={{ ml: "auto", color: theme.palette.primary.main }}>
+                ✓
+              </Box>
             )}
           </MenuItem>
         ))}
       </Menu>
-      
+
       {/* Filter Menu */}
       <Menu
         anchorEl={filterAnchorEl}
         open={filterMenuOpen}
         onClose={() => setFilterAnchorEl(null)}
-        sx={{ '& .MuiPaper-root': { borderRadius: 2, minWidth: 180 } }}
+        sx={{ "& .MuiPaper-root": { borderRadius: 2, minWidth: 180 } }}
       >
         <Typography variant="subtitle2" sx={{ px: 2, py: 1 }}>
           Filter By Size
         </Typography>
         <Divider />
         {[
-          { value: 'all', label: 'All Sizes' },
-          { value: 'small', label: 'Small (< 1MB)' },
-          { value: 'medium', label: 'Medium (1MB - 10MB)' },
-          { value: 'large', label: 'Large (> 10MB)' },
+          { value: "all", label: "All Sizes" },
+          { value: "small", label: "Small (< 1MB)" },
+          { value: "medium", label: "Medium (1MB - 10MB)" },
+          { value: "large", label: "Large (> 10MB)" },
         ].map((option) => (
-          <MenuItem 
+          <MenuItem
             key={option.value}
             selected={filterSize === option.value}
             onClick={() => {
@@ -1282,7 +1420,9 @@ const FileManager = ({ currentCategory, searchQuery }) => {
           >
             {option.label}
             {filterSize === option.value && (
-              <Box sx={{ ml: 'auto', color: theme.palette.primary.main }}>✓</Box>
+              <Box sx={{ ml: "auto", color: theme.palette.primary.main }}>
+                ✓
+              </Box>
             )}
           </MenuItem>
         ))}
@@ -1297,19 +1437,23 @@ const FileManager = ({ currentCategory, searchQuery }) => {
           sx: {
             borderRadius: 2,
             background: alpha(theme.palette.background.paper, 0.9),
-            backdropFilter: 'blur(10px)',
-          }
+            backdropFilter: "blur(10px)",
+          },
         }}
       >
-        <DialogTitle id="duplicate-dialog-title" sx={{ display: 'flex', alignItems: 'center' }}>
+        <DialogTitle
+          id="duplicate-dialog-title"
+          sx={{ display: "flex", alignItems: "center" }}
+        >
           <WarningIcon color="warning" sx={{ mr: 1 }} />
           File Already Exists
         </DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
-            A file with the name "{currentFile?.name}" already exists. What would you like to do?
+            A file with the name "{currentFile?.name}" already exists. What
+            would you like to do?
           </DialogContentText>
-          
+
           <Typography variant="subtitle2" gutterBottom>
             Rename file:
           </Typography>
@@ -1331,7 +1475,11 @@ const FileManager = ({ currentCategory, searchQuery }) => {
           <Button onClick={handleReplaceFile} color="warning">
             Replace Existing
           </Button>
-          <Button onClick={handleRenameFile} color="primary" variant="contained">
+          <Button
+            onClick={handleRenameFile}
+            color="primary"
+            variant="contained"
+          >
             Upload as New
           </Button>
         </DialogActions>
@@ -1347,24 +1495,30 @@ const FileManager = ({ currentCategory, searchQuery }) => {
           sx: {
             borderRadius: 2,
             background: alpha(theme.palette.background.paper, 0.9),
-            backdropFilter: 'blur(10px)',
-          }
+            backdropFilter: "blur(10px)",
+          },
         }}
       >
         {selectedFile && (
           <>
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Avatar 
-                  variant="rounded" 
-                  sx={{ 
-                    mr: 2, 
-                    bgcolor: alpha(theme.palette.primary.main, 0.8) 
+            <DialogTitle
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                <Avatar
+                  variant="rounded"
+                  sx={{
+                    mr: 2,
+                    bgcolor: alpha(theme.palette.primary.main, 0.8),
                   }}
                 >
                   {getFileIcon(selectedFile.mimetype)}
                 </Avatar>
-                <Typography variant="h6" noWrap sx={{ maxWidth: '250px' }}>
+                <Typography variant="h6" noWrap sx={{ maxWidth: "250px" }}>
                   {selectedFile.name}
                 </Typography>
               </Box>
@@ -1374,64 +1528,79 @@ const FileManager = ({ currentCategory, searchQuery }) => {
             </DialogTitle>
             <DialogContent dividers>
               {selectedFile.mimetype?.startsWith("image/") && (
-                <Box sx={{ mb: 3, textAlign: 'center' }}>
-                  <img 
-                    src={selectedFile.url} 
-                    alt={selectedFile.name} 
-                    style={{ 
-                      maxWidth: '100%', 
-                      maxHeight: '300px', 
-                      objectFit: 'contain',
+                <Box sx={{ mb: 3, textAlign: "center" }}>
+                  <img
+                    src={selectedFile.url}
+                    alt={selectedFile.name}
+                    style={{
+                      maxWidth: "100%",
+                      maxHeight: "300px",
+                      objectFit: "contain",
                       borderRadius: theme.shape.borderRadius,
-                      boxShadow: theme.shadows[5]
-                    }} 
-                  />
-                </Box>
-              )}
-              
-              {selectedFile.mimetype?.startsWith("video/") && (
-                <Box sx={{ mb: 3 }}>
-                  <video 
-                    src={selectedFile.url} 
-                    controls 
-                    style={{ 
-                      width: '100%', 
-                      maxHeight: '300px',
-                      borderRadius: theme.shape.borderRadius,
-                      backgroundColor: '#000'
-                    }} 
-                  />
-                </Box>
-              )}
-              
-              {selectedFile.mimetype?.startsWith("audio/") && (
-                <Box sx={{ mb: 3, p: 2, bgcolor: alpha(theme.palette.background.paper, 0.3), borderRadius: 1 }}>
-                  <Box 
-                    component="img" 
-                    src="/icons/audio-wave.svg" 
-                    alt="Audio" 
-                    sx={{ 
-                      width: '100%', 
-                      height: 80, 
-                      objectFit: 'contain',
-                      opacity: 0.7,
-                      mb: 2
+                      boxShadow: theme.shadows[5],
                     }}
                   />
-                  <audio controls style={{ width: '100%' }}>
-                    <source src={selectedFile.url} type={selectedFile.mimetype} />
+                </Box>
+              )}
+
+              {selectedFile.mimetype?.startsWith("video/") && (
+                <Box sx={{ mb: 3 }}>
+                  <video
+                    src={selectedFile.url}
+                    controls
+                    style={{
+                      width: "100%",
+                      maxHeight: "300px",
+                      borderRadius: theme.shape.borderRadius,
+                      backgroundColor: "#000",
+                    }}
+                  />
+                </Box>
+              )}
+
+              {selectedFile.mimetype?.startsWith("audio/") && (
+                <Box
+                  sx={{
+                    mb: 3,
+                    p: 2,
+                    bgcolor: alpha(theme.palette.background.paper, 0.3),
+                    borderRadius: 1,
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src="/icons/audio-wave.svg"
+                    alt="Audio"
+                    sx={{
+                      width: "100%",
+                      height: 80,
+                      objectFit: "contain",
+                      opacity: 0.7,
+                      mb: 2,
+                    }}
+                  />
+                  <audio controls style={{ width: "100%" }}>
+                    <source
+                      src={selectedFile.url}
+                      type={selectedFile.mimetype}
+                    />
                     Your browser does not support the audio tag.
                   </audio>
                 </Box>
               )}
-              
+
               <Typography variant="subtitle1" gutterBottom>
                 File Details
               </Typography>
-              
+
               <Grid container spacing={2} sx={{ mb: 2 }}>
                 <Grid item xs={12} sm={6}>
-                  <Paper sx={{ p: 2, bgcolor: alpha(theme.palette.background.paper, 0.5) }}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      bgcolor: alpha(theme.palette.background.paper, 0.5),
+                    }}
+                  >
                     <Typography variant="overline" color="text.secondary">
                       Type
                     </Typography>
@@ -1441,7 +1610,12 @@ const FileManager = ({ currentCategory, searchQuery }) => {
                   </Paper>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Paper sx={{ p: 2, bgcolor: alpha(theme.palette.background.paper, 0.5) }}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      bgcolor: alpha(theme.palette.background.paper, 0.5),
+                    }}
+                  >
                     <Typography variant="overline" color="text.secondary">
                       Size
                     </Typography>
@@ -1451,7 +1625,12 @@ const FileManager = ({ currentCategory, searchQuery }) => {
                   </Paper>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Paper sx={{ p: 2, bgcolor: alpha(theme.palette.background.paper, 0.5) }}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      bgcolor: alpha(theme.palette.background.paper, 0.5),
+                    }}
+                  >
                     <Typography variant="overline" color="text.secondary">
                       Last Modified
                     </Typography>
@@ -1461,59 +1640,71 @@ const FileManager = ({ currentCategory, searchQuery }) => {
                   </Paper>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Paper sx={{ p: 2, bgcolor: alpha(theme.palette.background.paper, 0.5) }}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      bgcolor: alpha(theme.palette.background.paper, 0.5),
+                    }}
+                  >
                     <Typography variant="overline" color="text.secondary">
                       Uploaded By
                     </Typography>
                     <Typography variant="body2">
-                      {selectedFile.uploadedBy === CURRENT_USER ? 'You' : selectedFile.uploadedBy}
+                      {selectedFile.uploadedBy === CURRENT_USER
+                        ? "You"
+                        : selectedFile.uploadedBy}
                     </Typography>
                   </Paper>
                 </Grid>
               </Grid>
-              
+
               <Typography variant="subtitle1" gutterBottom>
                 File Location
               </Typography>
               <TextField
                 fullWidth
                 variant="outlined"
-                value={selectedFile.url}
+                value={getCdnUrl(selectedFile.url)}
                 InputProps={{
                   readOnly: true,
                   endAdornment: (
-                    <IconButton 
-                      size="small" 
-                      onClick={() => copyUrlToClipboard(selectedFile.url)}
+                    <IconButton
+                      size="small"
+                      onClick={() =>
+                        copyUrlToClipboard(getCdnUrl(selectedFile.url))
+                      }
                       color="primary"
                     >
                       <LinkIcon />
                     </IconButton>
                   ),
-                  sx: { bgcolor: alpha(theme.palette.background.paper, 0.5) }
+                  sx: { bgcolor: alpha(theme.palette.background.paper, 0.5) },
                 }}
                 size="small"
               />
             </DialogContent>
             <DialogActions>
-              <Button 
+              <Button
                 startIcon={<StarIcon />}
                 color="warning"
                 onClick={() => {
                   toggleFavorite(selectedFile);
-                  setSelectedFile(prev => ({...prev, favorite: !prev.favorite}));
+                  setSelectedFile((prev) => ({
+                    ...prev,
+                    favorite: !prev.favorite,
+                  }));
                 }}
               >
-                {selectedFile.favorite ? 'Remove Favorite' : 'Add Favorite'}
+                {selectedFile.favorite ? "Remove Favorite" : "Add Favorite"}
               </Button>
-              <Button 
+              <Button
                 startIcon={<DownloadIcon />}
                 color="primary"
                 onClick={() => downloadFile(selectedFile)}
               >
                 Download
               </Button>
-              <Button 
+              <Button
                 startIcon={<DeleteIcon />}
                 color="error"
                 onClick={() => {
@@ -1536,17 +1727,18 @@ const FileManager = ({ currentCategory, searchQuery }) => {
           sx: {
             borderRadius: 2,
             background: alpha(theme.palette.background.paper, 0.9),
-            backdropFilter: 'blur(10px)',
-          }
+            backdropFilter: "blur(10px)",
+          },
         }}
       >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center' }}>
+        <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
           <DeleteIcon color="error" sx={{ mr: 1 }} />
           Confirm Delete
         </DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete "{fileToDelete?.name}"? This action cannot be undone.
+            Are you sure you want to delete "{fileToDelete?.name}"? This action
+            cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
