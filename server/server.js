@@ -23,6 +23,7 @@ const allowedOrigins = [
   "https://skoegle.in",
   "https://skocloud-cdn.skoegle.com",
    "https://www.skocloud-cdn.skoegle.com",
+   "http://192.168.29.4:8000",
   "https://skoegle.co.in", 
 ];
 

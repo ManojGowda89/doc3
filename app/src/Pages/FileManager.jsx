@@ -115,7 +115,7 @@ const FileManager = ({ currentCategory, searchQuery }) => {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   // States for UI
-  const [viewMode, setViewMode] = useState("list");
+  const [viewMode, setViewMode] = useState("grid");
 
   // States for file management
   const [files, setFiles] = useState([]);
@@ -494,24 +494,35 @@ const FileManager = ({ currentCategory, searchQuery }) => {
   };
 
   // Copy URL to clipboard
-  const copyUrlToClipboard = async (url) => {
-    console.log("Copying URL to clipboard:", url);
-    try {
+const copyUrlToClipboard = async (url) => {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(url);
-      setSnackbar({
-        open: true,
-        message: "URL copied to clipboard",
-        severity: "success",
-      });
-    } catch (err) {
-      console.error("Copy to clipboard failed", err);
-      setSnackbar({
-        open: true,
-        message: "Failed to copy URL",
-        severity: "error",
-      });
+    } else {
+      // fallback method
+      const textArea = document.createElement("textarea");
+      textArea.value = url;
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
     }
-  };
+
+    setSnackbar({
+      open: true,
+      message: "URL copied to clipboard",
+      severity: "success",
+    });
+  } catch (err) {
+    console.error("Copy failed", err);
+    setSnackbar({
+      open: true,
+      message: "Failed to copy URL",
+      severity: "error",
+    });
+  }
+};
 
   // Get file size in human readable format
   const getFileSize = (size) => {
