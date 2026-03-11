@@ -22,9 +22,11 @@ const allowedOrigins = [
   "https://skoegle.com",
   "https://skoegle.in",
   "https://skocloud-cdn.skoegle.com",
-   "https://www.skocloud-cdn.skoegle.com",
-   "http://192.168.29.4:8000",
-  "https://skoegle.co.in", 
+  "https://www.skocloud-cdn.skoegle.com",
+  "http://192.168.29.4:8000",
+  "http://192.168.29.4:9000",
+  "http://192.168.29.5:9000",
+  "https://skoegle.co.in",
 ];
 
 // ✅ CORS middleware
@@ -38,7 +40,7 @@ app.use(
       }
     },
     credentials: true, // Allow cookies / auth headers
-  })
+  }),
 );
 
 // Enable body parser

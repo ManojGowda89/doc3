@@ -497,11 +497,11 @@ const FileManager = ({ currentCategory, searchQuery }) => {
 const copyUrlToClipboard = async (url) => {
   try {
     if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(getCdnUrl(url));
     } else {
       // fallback method
       const textArea = document.createElement("textarea");
-      textArea.value = url;
+      textArea.value = getCdnUrl(url);
       document.body.appendChild(textArea);
       textArea.focus();
       textArea.select();
