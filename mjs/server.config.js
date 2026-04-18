@@ -8,7 +8,7 @@ import config from './mjs.config.js';
 import webpackDevMiddleware from 'webpack-dev-middleware';
 import webpackHotMiddleware from 'webpack-hot-middleware';
 import morgan from 'morgan';
-
+import compression  from 'compression';
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -36,6 +36,7 @@ export const createApp = () => {
         req.url.endsWith('.map'),
     })
   );
+  app.use(compression());
 
   const isProd = process.env.NODE_ENV === 'production';
   let compiler;

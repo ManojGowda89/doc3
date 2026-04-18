@@ -17,9 +17,9 @@ WORKDIR /app
 
 COPY --from=builder /app /app
 COPY server ./server
-
+COPY .env ./.env
 ENV NODE_ENV=production
 
-EXPOSE 8000
+EXPOSE 9000
 
 CMD ["npm", "start"]
